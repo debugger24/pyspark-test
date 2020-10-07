@@ -57,8 +57,8 @@ def assert_pyspark_df_equal(
                 assert True
             elif left_cell is None and right_cell is None:
                 assert True
-            elif math.isnan(left_cell) and math.isnan(right_cell):
-                assert True
+            # elif math.isnan(left_cell) and math.isnan(right_cell):
+            #     assert True
             else:
                 assert (
                     False
