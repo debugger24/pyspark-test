@@ -2,7 +2,7 @@ import math
 import pyspark
 
 
-def assert_pysaprk_df_equal(
+def assert_pyspark_df_equal(
     left_df: pyspark.sql.DataFrame,
     right_df: pyspark.sql.DataFrame,
     check_dtype: bool = True,

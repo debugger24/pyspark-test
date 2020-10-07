@@ -10,11 +10,11 @@ from pyspark.sql.types import (
     StructType,
 )
 
-from src.assert_pysaprk_df_equal import assert_pysaprk_df_equal
+from src.assert_pyspark_df_equal import assert_pyspark_df_equal
 
 
-class TestAssertPysaprkDfEqual:
-    def test_assert_pysaprk_df_equal(self, spark_session: pyspark.sql.SparkSession):
+class TestAssertPysparkDfEqual:
+    def test_assert_pyspark_df_equal(self, spark_session: pyspark.sql.SparkSession):
         left_df = spark_session.createDataFrame(
             data=[
                 [datetime.date(2020, 1, 1), "demo", 1.123, 10],
@@ -43,4 +43,4 @@ class TestAssertPysaprkDfEqual:
                 ]
             ),
         )
-        assert_pysaprk_df_equal(left_df, right_df)
+        assert_pyspark_df_equal(left_df, right_df)
