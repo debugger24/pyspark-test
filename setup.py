@@ -6,7 +6,7 @@ def readme():
     
 setup(
     name='assert_pysaprk_df_equal',
-    version='0.0.1',
+    version='0.0.2',
     description='',
     long_description=readme(),
     long_description_content_type='text/markdown',

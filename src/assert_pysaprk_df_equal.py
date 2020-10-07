@@ -5,8 +5,8 @@ import pyspark
 def assert_pysaprk_df_equal(
     left_df: pyspark.sql.DataFrame,
     right_df: pyspark.sql.DataFrame,
-    check_column_names: bool = False,
     check_dtype: bool = True,
+    check_column_names: bool = False,
     check_columns_in_order: bool = False,
     order_by: list = None,
 ) -> None:
@@ -15,8 +15,8 @@ def assert_pysaprk_df_equal(
     Args:
         left_df (pyspark.sql.DataFrame): Left Dataframe
         right_df (pyspark.sql.DataFrame): Right Dataframe
-        check_column_names (bool, optional): Comapare both dataframes have same column or not. Defaults to False.
         check_dtype (bool, optional): Comapred both dataframe have same column and colum type or not. If using check_dtype then check_column_names is not required. Defaults to True.
+        check_column_names (bool, optional): Comapare both dataframes have same column or not. Defaults to False.
         check_columns_in_order (bool, optional): Check columns in order. Defaults to False.
     """
     # Check Column Names
