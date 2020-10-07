@@ -1,5 +1,9 @@
 # pyspark-df-assert
 
+Check that left and right spark DataFrame are equal.
+
+This function is intended to compare two spark DataFrames and output any differences. Is is mostly intended for use in unit tests. Additional parameters allow varying the strictness of the equality checks performed.
+
 # Example
 
 ```py
