@@ -6,7 +6,7 @@ def readme():
     
 setup(
     name='assert_pyspark_df_equal',
-    version='0.0.',
+    version='0.0.1',
     description='',
     long_description=readme(),
     long_description_content_type='text/markdown',
