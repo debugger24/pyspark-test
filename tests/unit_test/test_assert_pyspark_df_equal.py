@@ -12,7 +12,7 @@ from pyspark.sql.types import (
     TimestampType,
 )
 
-from src.assert_pyspark_df_equal import assert_pyspark_df_equal
+from src.pyspark_test import assert_pyspark_df_equal
 
 
 class TestAssertPysparkDfEqual:
