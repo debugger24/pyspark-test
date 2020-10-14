@@ -7,17 +7,17 @@ def readme():
 
 
 setup(
-    name="assert_pyspark_df_equal",
+    name="pyspark_test",
     version="0.0.2",
     description="",
     long_description=readme(),
     long_description_content_type="text/markdown",
-    url="https://github.com/debugger24/pyspark-df-assert",
+    url="https://github.com/debugger24/pyspark-test",
     author="Rahul Kumar",
     author_email="rahulcomp24@gmail.com",
     keywords="assert pyspark unit test testing compare",
     license="Apache Software License",
-    py_modules=["assert_pyspark_df_equal"],
+    py_modules=["pyspark_test"],
     package_dir={"": "src"},
     install_requires=["pyspark>=2.1.2"],
 )

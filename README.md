@@ -1,4 +1,4 @@
-# pyspark-df-assert
+# pyspark-test
 
 Check that left and right spark DataFrame are equal.
 
@@ -7,7 +7,7 @@ This function is intended to compare two spark DataFrames and output any differe
 # Example
 
 ```py
-from assert_pysaprk_df_equal import assert_pysaprk_df_equal
+from pyspark_test import assert_pyspark_df_equal
 
 df_1 = spark_session.createDataFrame(
     data=[
@@ -39,5 +39,5 @@ df_2 = spark_session.createDataFrame(
     ),
 )
 
-assert_pysaprk_df_equal(df_1, df_2)
+assert_pyspark_df_equal(df_1, df_2)
 ```
