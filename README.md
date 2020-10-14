@@ -1,4 +1,4 @@
-# pyspark-df-assert
+# pyspark-test
 
 Check that left and right spark DataFrame are equal.
 
