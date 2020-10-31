@@ -1,8 +1,30 @@
 # pyspark-test
 
+[![Code Style: Black](https://img.shields.io/badge/code%20style-black-black.svg)](https://github.com/ambv/black)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 Check that left and right spark DataFrame are equal.
 
 This function is intended to compare two spark DataFrames and output any differences. Is is mostly intended for use in unit tests. Additional parameters allow varying the strictness of the equality checks performed.
+
+# Installation
+
+```
+pip install pyspark-test
+```
+
+# Usage
+
+```
+assert_pyspark_df_equal(left_df, actual_df)
+```
+
+## Additional Arguments
+
+* `check_dtype` : To compare the data types of spark dataframe. Default true
+* `check_column_names` : To compare column names. Default false. Not required of we are checking data types.
+* `check_columns_in_order` : To check the columns should be in order or not. Default to false
+* `order_by` : Column names with which dataframe must be sorted before comparing. Default None.
 
 # Example
 
