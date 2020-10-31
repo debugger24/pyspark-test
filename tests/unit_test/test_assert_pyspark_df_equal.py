@@ -276,7 +276,10 @@ class TestAssertPysparkDfEqual:
             ),
         )
         right_df = spark_session.createDataFrame(
-            data=[[datetime.datetime(2020, 1, 1), "demo", 10], [None, None, None],],
+            data=[
+                [datetime.datetime(2020, 1, 1), "demo", 10],
+                [None, None, None],
+            ],
             schema=StructType(
                 [
                     StructField("col_a", DateType(), True),
