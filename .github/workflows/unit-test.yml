@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
-      - name: Build the Docker image
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build the Docker image and run tests
         run: docker build . --file Dockerfile --tag pyspark-test:$(date +%s)

@@ -33,4 +33,4 @@ RUN pip install -r requirements.txt
 COPY src src
 COPY tests tests
 
-CMD ["pytest", "--testdox"]
+RUN pytest --testdox
