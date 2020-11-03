@@ -3,6 +3,7 @@
 [![Code Style: Black](https://img.shields.io/badge/code%20style-black-black.svg)](https://github.com/ambv/black)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Unit Test](https://github.com/debugger24/pyspark-test/workflows/Unit%20Test/badge.svg?branch=main)](https://github.com/debugger24/pyspark-test/actions?query=workflow%3A%22Unit+Test%22)
+[![PyPI version](https://badge.fury.io/py/pyspark-test.svg)](https://badge.fury.io/py/pyspark-test)
 
 Check that left and right spark DataFrame are equal.
 
