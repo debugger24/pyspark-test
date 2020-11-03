@@ -12,11 +12,10 @@ def spark_session():
     conf = (
         SparkConf()
         .setMaster("local")
-        .setAppName("dmp-unit-test")
+        .setAppName("unit-test")
         .set("spark.default.parallelism", "1")
         .set("spark.sql.shuffle.partitions", "1")
         .set("spark.shuffle.service.enabled", "false")
-        .set("spark.sql.catalogImplementation", "hive")
     )
 
     sc = SparkContext.getOrCreate(conf=conf)
