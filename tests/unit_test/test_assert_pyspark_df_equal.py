@@ -9,7 +9,6 @@ from pyspark.sql.types import (
     StringType,
     StructField,
     StructType,
-    TimestampType,
 )
 
 from src.pyspark_test import assert_pyspark_df_equal
@@ -276,10 +275,7 @@ class TestAssertPysparkDfEqual:
             ),
         )
         right_df = spark_session.createDataFrame(
-            data=[
-                [datetime.datetime(2020, 1, 1), "demo", 10],
-                [None, None, None],
-            ],
+            data=[[datetime.datetime(2020, 1, 1), "demo", 10], [None, None, None],],
             schema=StructType(
                 [
                     StructField("col_a", DateType(), True),

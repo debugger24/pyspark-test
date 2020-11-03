@@ -1,7 +1,7 @@
 import pyspark
 
 
-def _check_isinstance(left, right, cls):
+def _check_isinstance(left: Any, right: Any, cls):
     assert isinstance(
         left, cls
     ), f"Left expected type {cls}, found {type(left)} instead"
@@ -10,7 +10,11 @@ def _check_isinstance(left, right, cls):
     ), f"Right expected type {cls}, found {type(right)} instead"
 
 
-def _check_columns(check_columns_in_order, left_df, right_df):
+def _check_columns(
+    check_columns_in_order: bool,
+    left_df: pyspark.sql.DataFrame,
+    right_df: pyspark.sql.DataFrame,
+):
     if check_columns_in_order:
         assert left_df.columns == right_df.columns, "df columns name mismatch"
     else:
@@ -19,7 +23,11 @@ def _check_columns(check_columns_in_order, left_df, right_df):
         ), "df columns name mismatch"
 
 
-def _check_schema(check_columns_in_order, left_df, right_df):
+def _check_schema(
+    check_columns_in_order: bool,
+    left_df: pyspark.sql.DataFrame,
+    right_df: pyspark.sql.DataFrame,
+):
     if check_columns_in_order:
         assert left_df.dtypes == right_df.dtypes, "df schema type mismatch"
     else:
@@ -28,7 +36,9 @@ def _check_schema(check_columns_in_order, left_df, right_df):
         ), "df schema type mismatch"
 
 
-def _check_df_content(left_df, right_df):
+def _check_df_content(
+    left_df: pyspark.sql.DataFrame, right_df: pyspark.sql.DataFrame,
+):
     left_df_list = left_df.collect()
     right_df_list = right_df.collect()
 
