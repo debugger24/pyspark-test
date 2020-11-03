@@ -17,7 +17,7 @@ pip install pyspark-test
 
 # Usage
 
-```
+```py
 assert_pyspark_df_equal(left_df, actual_df)
 ```
 
