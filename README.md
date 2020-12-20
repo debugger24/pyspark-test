@@ -7,7 +7,7 @@
 
 Check that left and right spark DataFrame are equal.
 
-This function is intended to compare two spark DataFrames and output any differences. It is inspired from pandas testing module for pysaprk, and for use in unit tests. Additional parameters allow varying the strictness of the equality checks performed.
+This function is intended to compare two spark DataFrames and output any differences. It is inspired from pandas testing module but for pysaprk, and for use in unit tests. Additional parameters allow varying the strictness of the equality checks performed.
 
 # Installation
 
