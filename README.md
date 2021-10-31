@@ -32,7 +32,16 @@ assert_pyspark_df_equal(left_df, actual_df)
 # Example
 
 ```py
+import datetime
+
+from pyspark import SparkContext
+from pyspark.sql import SparkSession
+from pyspark.sql.types import *
+
 from pyspark_test import assert_pyspark_df_equal
+
+sc = SparkContext.getOrCreate(conf=conf)
+spark_session = SparkSession(sc)
 
 df_1 = spark_session.createDataFrame(
     data=[
