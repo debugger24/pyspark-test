@@ -8,7 +8,7 @@ def readme():
 
 setup(
     name="pyspark_test",
-    version="0.1.0",
+    version="0.2.0",
     description="Check that left and right spark DataFrame are equal.",
     long_description=readme(),
     long_description_content_type="text/markdown",
