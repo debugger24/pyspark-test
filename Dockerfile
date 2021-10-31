@@ -14,7 +14,7 @@ RUN wget "http://archive.apache.org/dist/hadoop/common/hadoop-$HADOOP_VERSION/ha
     && rm "hadoop-$HADOOP_VERSION.tar.gz"
 
 # Spark
-ENV SPARK_VERSION 2.4.7
+ENV SPARK_VERSION 2.4.8
 ENV SPARK_PACKAGE spark-$SPARK_VERSION
 ENV SPARK_HOME /usr/$SPARK_PACKAGE-bin-without-hadoop
 ENV PYSPARK_PYTHON python

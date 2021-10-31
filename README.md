@@ -8,7 +8,7 @@
 
 Check that left and right spark DataFrame are equal.
 
-This function is intended to compare two spark DataFrames and output any differences. It is inspired from pandas testing module but for pysaprk, and for use in unit tests. Additional parameters allow varying the strictness of the equality checks performed.
+This function is intended to compare two spark DataFrames and output any differences. It is inspired from pandas testing module but for pyspark, and for use in unit tests. Additional parameters allow varying the strictness of the equality checks performed.
 
 # Installation
 
@@ -32,7 +32,16 @@ assert_pyspark_df_equal(left_df, actual_df)
 # Example
 
 ```py
+import datetime
+
+from pyspark import SparkContext
+from pyspark.sql import SparkSession
+from pyspark.sql.types import *
+
 from pyspark_test import assert_pyspark_df_equal
+
+sc = SparkContext.getOrCreate(conf=conf)
+spark_session = SparkSession(sc)
 
 df_1 = spark_session.createDataFrame(
     data=[

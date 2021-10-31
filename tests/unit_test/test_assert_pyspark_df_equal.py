@@ -48,7 +48,7 @@ class TestAssertPysparkDfEqual:
         )
         assert_pyspark_df_equal(left_df, right_df)
 
-    def test_assert_pyspark_df_equal_one_is_not_pysaprk_df(
+    def test_assert_pyspark_df_equal_one_is_not_pyspark_df(
         self, spark_session: pyspark.sql.SparkSession
     ):
         left_df = spark_session.createDataFrame(
