@@ -44,6 +44,14 @@ def _check_schema(
         ), "df schema type mismatch"
 
 
+def _check_row_count(left_df, right_df):
+    left_df_count = left_df.count()
+    right_df_count = right_df.count()
+    assert (
+        left_df_count == right_df_count
+    ), f"Number of rows are not same.\n\nActual Rows: {left_df_count}\nExpected Rows: {right_df_count}\n"
+
+
 def _diff_df_content(
     left_df: pyspark.sql.DataFrame,
     right_df: pyspark.sql.DataFrame,
@@ -86,14 +94,6 @@ def _diff_df_content(
                     return differences
 
     return differences
-
-
-def _check_row_count(left_df, right_df):
-    left_df_count = left_df.count()
-    right_df_count = right_df.count()
-    assert (
-        left_df_count == right_df_count
-    ), f"Number of rows are not same.\n\nActual Rows: {left_df_count}\nExpected Rows: {right_df_count}\n"
 
 
 def compare_pyspark_dataframes(
