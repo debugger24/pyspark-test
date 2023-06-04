@@ -181,6 +181,7 @@ def diff(
             )
             with open("output_differences_file", "w") as fd:
                 dict_writer = csv.DictWriter(fd, fieldnames=differences[0].keys())
+                dict_writer.writeheader()
                 dict_writer.writerows(differences)
         else:
             differences_to_log = (
