@@ -1,0 +1,33 @@
+[project]
+name = "pyspark_diff"
+version = "1.0.0"
+description = "Compare two PySpark dataframes"
+requires-python = ">=3.8"
+dependencies = [
+    "pyspark>=2.1.2",
+    'importlib-metadata; python_version<"3.9"',
+]
+readme = "README.md"
+authors = [
+    {name = "Rahul Kumar", email = "ahulcomp24@gmail.com"},
+    {name = "Oriol Alfonso", email = "oriol@oalfonso.com"},
+]
+license = {file = "LICENSE"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Intended Audience :: Developers",
+    "Framework :: PySpark",
+]
+
+[project.urls]
+repository = "https://github.com/oalfonso-o/pyspark_diff"
+documentation = "https://github.com/oalfonso-o/pyspark_diff/blob/main/README.md"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

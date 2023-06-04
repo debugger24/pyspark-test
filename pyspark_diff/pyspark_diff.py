@@ -96,7 +96,7 @@ def _diff_df_content(
     return differences
 
 
-def compare_pyspark_dataframes(
+def diff(
     left_df: pyspark.sql.DataFrame,
     right_df: pyspark.sql.DataFrame,
     check_dtype: bool = True,
