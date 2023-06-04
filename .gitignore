@@ -11,3 +11,4 @@ venv
 .venv/
 .idea/
 dist/
+site-packages
