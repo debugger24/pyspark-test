@@ -11,6 +11,8 @@ logger = logging.getLogger("pyspark_test")
 
 REASON_DIFF_INPUT_TYPE = "diff_input_type"
 REASON_DIFF_COLUMNS = "diff_columns"
+REASON_DIFF_SCHEMA = "diff_schema"
+REASON_DIFF_ROW_COUNT = "diff_row_count"
 REASON_DIFF_TYPE = "diff_type"
 REASON_DIFF_VALUE = "diff_value"
 REASON_DIFF_LIST_LEN = "diff_list_len"
@@ -79,25 +81,48 @@ def _diff_columns(
     return differences
 
 
-def _check_schema(
-    check_columns_in_order: bool,
+def _diff_schema(
     left_df: pyspark.sql.DataFrame,
     right_df: pyspark.sql.DataFrame,
-):
-    if check_columns_in_order:
-        assert left_df.dtypes == right_df.dtypes, "df schema type mismatch"
-    else:
-        assert sorted(left_df.dtypes, key=lambda x: x[0]) == sorted(
-            right_df.dtypes, key=lambda x: x[0]
-        ), "df schema type mismatch"
+) -> list[Difference]:
+    differences = []
+    left_dtypes = set(left_df.dtypes)
+    right_dtypes = set(right_df.dtypes)
+    dtypes_only_left = left_dtypes - right_dtypes
+    dtypes_only_right = right_dtypes - left_dtypes
+
+    if dtypes_only_left or dtypes_only_right:
+        differences.append(
+            Difference(
+                row_id=0,
+                column_name="",
+                column_name_parent="",
+                left=dtypes_only_left,
+                right=dtypes_only_right,
+                reason=REASON_DIFF_SCHEMA,
+            )
+        )
+
+    return differences
 
 
-def _check_row_count(left_df, right_df):
+def _diff_row_count(left_df, right_df) -> list[Difference]:
+    differences = []
     left_df_count = left_df.count()
     right_df_count = right_df.count()
-    assert (
-        left_df_count == right_df_count
-    ), f"Number of rows are not same.\n\nActual Rows: {left_df_count}\nExpected Rows: {right_df_count}\n"
+    if left_df_count != right_df_count:
+        differences.append(
+            Difference(
+                row_id=0,
+                column_name="",
+                column_name_parent="",
+                left=left_df_count,
+                right=right_df_count,
+                reason=REASON_DIFF_ROW_COUNT,
+            )
+        )
+
+    return differences
 
 
 def _diff_row(
@@ -182,7 +207,7 @@ def _diff_df_content(
     order_by: list = None,
     columns: list = None,
     sorting_keys: dict = None,
-) -> list:
+) -> list[Difference]:
     differences = []
 
     left_df_list = left_df.collect()[skip_n_first_rows:]
@@ -235,7 +260,7 @@ def diff(
     skip_n_first_rows: int = 0,
     columns: list = None,
     sorting_keys: dict = None,
-) -> list:
+) -> list[Difference]:
     """
     Used to test if two dataframes are same or not
 
@@ -257,7 +282,7 @@ def diff(
             provided. Defaults to None.
 
     Returns:
-        A list of the differences
+        A list of the differences, objects pyspark_diff.Difference
     """
 
     _validate_input(
@@ -276,17 +301,19 @@ def diff(
     if differences:
         return differences  # if we have different columns there's no need to check more
 
-    _check_schema(left_df, right_df)
+    differences = _diff_schema(left_df, right_df)
+    if differences:
+        return differences  # if we have different schema there's no need to check more
 
-    # Check number of rows
-    _check_row_count(left_df, right_df)
+    differences = _diff_row_count(left_df, right_df)
+    if differences:  # if we have different row count there's no need to check more
+        return differences
 
-    # Sort df
     if order_by and not skip_n_first_rows:
+        # order with pyspark only if we don't need to skip inital rows, otherwise sort with python
         left_df = left_df.orderBy(order_by)
         right_df = right_df.orderBy(order_by)
 
-    # Check dataframe content
     differences = _diff_df_content(
         left_df=left_df,
         right_df=right_df,

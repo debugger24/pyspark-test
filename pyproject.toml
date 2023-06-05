@@ -4,13 +4,14 @@ version = "1.0.0"
 description = "Compare two PySpark dataframes"
 requires-python = ">=3.8"
 dependencies = [
-    "pyspark>=2.1.2",
+    "pyspark>=3.4,<4",
+    "pydantic>=1.10,<2",
     'importlib-metadata; python_version<"3.9"',
 ]
 readme = "README.md"
 authors = [
-    {name = "Rahul Kumar", email = "ahulcomp24@gmail.com"},
     {name = "Oriol Alfonso", email = "oriol@oalfonso.com"},
+    {name = "Rahul Kumar", email = "ahulcomp24@gmail.com"},
 ]
 license = {file = "LICENSE"}
 classifiers = [
