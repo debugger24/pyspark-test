@@ -11,7 +11,6 @@ dependencies = [
 readme = "README.md"
 authors = [
     {name = "Oriol Alfonso", email = "oriol@oalfonso.com"},
-    {name = "Rahul Kumar", email = "ahulcomp24@gmail.com"},
 ]
 license = {file = "LICENSE"}
 classifiers = [
