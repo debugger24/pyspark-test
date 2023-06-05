@@ -284,9 +284,95 @@ def test_specific_columns():
     ]
 
 
-def test_all_columns():
-    pass
+def test_diff_all_columns():
+    data1 = [
+        ("id1", "v1", "v2", "v3"),
+        ("id2", "v1", "v2", "v3"),
+        ("id3", "v1", "v2", "v3"),
+        ("id4", "v1", "v2", "v3"),
+    ]
+    data2 = [
+        ("id1", "v1", "v2diff", "v3diff"),
+        ("id2", "v1", "v2", "v3diff"),
+        ("id3", "v1", "v2diff", "v3"),
+        ("id4", "v1diff", "v2", "v3"),
+    ]
+    df1 = spark.createDataFrame(data=data1, schema=["id", "col1", "col2", "col3"])
+    df2 = spark.createDataFrame(data=data2, schema=["id", "col1", "col2", "col3"])
+    differences = diff(df1, df2, id_field="id")
+    assert differences == [
+        Difference(
+            row_id="id1",
+            column_name="col2",
+            column_name_parent="",
+            left="v2",
+            right="v2diff",
+            reason="diff_value",
+        ),
+        Difference(
+            row_id="id1",
+            column_name="col3",
+            column_name_parent="",
+            left="v3",
+            right="v3diff",
+            reason="diff_value",
+        ),
+        Difference(
+            row_id="id2",
+            column_name="col3",
+            column_name_parent="",
+            left="v3",
+            right="v3diff",
+            reason="diff_value",
+        ),
+        Difference(
+            row_id="id3",
+            column_name="col2",
+            column_name_parent="",
+            left="v2",
+            right="v2diff",
+            reason="diff_value",
+        ),
+        Difference(
+            row_id="id4",
+            column_name="col1",
+            column_name_parent="",
+            left="v1",
+            right="v1diff",
+            reason="diff_value",
+        ),
+    ]
 
 
 def test_sorting_keys():
-    pass
+    data1 = [
+        ("id1", [{"a": 1, "b": 1}, {"a": 1, "b": 2}, {"a": 2, "b": 1}]),
+    ]
+    data2 = [
+        ("id1", [{"a": 2, "b": 1}, {"a": 1, "b": 2}, {"a": 1, "b": 1}]),
+    ]
+    df1 = spark.createDataFrame(data=data1, schema=["id", "col1"])
+    df2 = spark.createDataFrame(data=data2, schema=["id", "col1"])
+    differences = diff(df1, df2, id_field="id")
+    assert differences == [
+        Difference(
+            row_id="id1",
+            column_name="a",
+            column_name_parent="col1.[0]",
+            left=1,
+            right=2,
+            reason="diff_value",
+        ),
+        Difference(
+            row_id="id1",
+            column_name="a",
+            column_name_parent="col1.[2]",
+            left=2,
+            right=1,
+            reason="diff_value",
+        ),
+    ]
+    differences = diff(
+        df1, df2, id_field="id", sorting_keys={"col1": lambda x: (x["a"], x["b"])}
+    )
+    assert not differences

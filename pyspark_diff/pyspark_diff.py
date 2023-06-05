@@ -288,6 +288,8 @@ def diff(
             Defaults to None.
         sorting_keys (dict, optional): Sort the values of specific columns if they are lists based
             on the key provided. The value must be a lambda used in the python `sorted` method.
+            Notice that this is not going to change the order of the dataset, only the order of the
+            values of an specific column.
             Defaults to None.
 
     Returns:
