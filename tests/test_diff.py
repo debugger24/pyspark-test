@@ -257,7 +257,31 @@ def test_recursive_list():
 
 
 def test_specific_columns():
-    pass
+    data1 = [
+        ("id1", "v1", "v2", "v3"),
+        ("id2", "v1", "v2", "v3"),
+        ("id3", "v1", "v2", "v3"),
+        ("id4", "v1", "v2", "v3"),
+    ]
+    data2 = [
+        ("id1", "v1", "v2diff", "v3diff"),
+        ("id2", "v1", "v2", "v3diff"),
+        ("id3", "v1", "v2diff", "v3"),
+        ("id4", "v1diff", "v2", "v3"),
+    ]
+    df1 = spark.createDataFrame(data=data1, schema=["id", "col1", "col2", "col3"])
+    df2 = spark.createDataFrame(data=data2, schema=["id", "col1", "col2", "col3"])
+    differences = diff(df1, df2, id_field="id", columns=["col1"])
+    assert differences == [
+        Difference(
+            row_id="id4",
+            column_name="col1",
+            column_name_parent="",
+            left="v1",
+            right="v1diff",
+            reason="diff_value",
+        )
+    ]
 
 
 def test_all_columns():
