@@ -141,7 +141,7 @@ def test_id_field():
     pass
 
 
-def test_no_recursive():
+def test_recursive():
     pass
 
 
