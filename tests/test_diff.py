@@ -205,7 +205,55 @@ def test_recursive_dict():
 
 
 def test_recursive_list():
-    pass
+    data1 = [
+        (
+            "id1",
+            {"a": [{"b": [{"c": [1, 2, 3]}]}], "a2": [{"b2": [{"c2": [1, 2, 3]}]}]},
+        ),
+        (
+            "id2",
+            {"a": [{"b": [{"c": [1, 2, 3]}]}], "a2": [{"b2": [{"c2": [1, 2, 3]}]}]},
+        ),
+        (
+            "id3",
+            {"a": [{"b": [{"c": [1, 2, 3]}]}], "a2": [{"b2": [{"c2": [1, 2, 3]}]}]},
+        ),
+    ]
+    data2 = [
+        (
+            "id1",
+            {"a": [{"b": [{"c": [1, 2, 3]}]}], "a2": [{"b2": [{"c2": [1, 2, 3]}]}]},
+        ),
+        (
+            "id2",
+            {"a": [{"b": [{"c": [1, 2, 3]}]}], "a2": [{"b2": [{"c2": [1, 2, 1337]}]}]},
+        ),
+        (
+            "id3",
+            {"a": [{"b": [{"c": [1337, 2, 3]}]}], "a2": [{"b2": [{"c2": [1, 2, 3]}]}]},
+        ),
+    ]
+    df1 = spark.createDataFrame(data=data1, schema=["id", "col1"])
+    df2 = spark.createDataFrame(data=data2, schema=["id", "col1"])
+    differences = diff(df1, df2, id_field="id")
+    assert differences == [
+        Difference(
+            row_id="id2",
+            column_name="[2]",
+            column_name_parent="col1.a2.[0].b2.[0].c2",
+            left=3,
+            right=1337,
+            reason="diff_value",
+        ),
+        Difference(
+            row_id="id3",
+            column_name="[0]",
+            column_name_parent="col1.a.[0].b.[0].c",
+            left=1,
+            right=1337,
+            reason="diff_value",
+        ),
+    ]
 
 
 def test_specific_columns():
