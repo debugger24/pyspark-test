@@ -1,40 +1,82 @@
-import csv
 import logging
-import pprint
-from typing import Any
 
 import pyspark
+
+from pyspark_diff.models import Difference
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s: %(message)s", level="INFO"
 )
 logger = logging.getLogger("pyspark_test")
 
+REASON_DIFF_INPUT_TYPE = "diff_input_type"
+REASON_DIFF_COLUMNS = "diff_columns"
 REASON_DIFF_TYPE = "diff_type"
 REASON_DIFF_VALUE = "diff_value"
 REASON_DIFF_LIST_LEN = "diff_list_len"
 
 
-def _check_isinstance(left: Any, right: Any, cls):
-    assert isinstance(
-        left, cls
-    ), f"Left expected type {cls}, found {type(left)} instead"
-    assert isinstance(
-        right, cls
-    ), f"Right expected type {cls}, found {type(right)} instead"
-
-
-def _check_columns(
-    check_columns_in_order: bool,
+def _validate_input(
     left_df: pyspark.sql.DataFrame,
     right_df: pyspark.sql.DataFrame,
-):
-    if check_columns_in_order:
-        assert left_df.columns == right_df.columns, "df columns name mismatch"
-    else:
-        assert sorted(left_df.columns) == sorted(
-            right_df.columns
-        ), "df columns name mismatch"
+    order_by: list = None,
+    return_all_differences: bool = False,
+    id_field: str = None,
+    recursive: bool = False,
+    skip_n_first_rows: int = 0,
+    columns: list = None,
+    sorting_keys: dict = None,
+) -> None:
+    if not isinstance(left_df, pyspark.sql.DataFrame) or not isinstance(
+        right_df, pyspark.sql.DataFrame
+    ):
+        raise ValueError(
+            "Both inputs must be instances of pyspark.sql.DataFrame, "
+            f"found left: {type(left_df)}, right: {type(right_df)}"
+        )
+    if order_by and not isinstance(order_by, list):
+        raise ValueError(f"order_by must be list, found {type(order_by)}")
+    if not isinstance(return_all_differences, bool):
+        raise ValueError(
+            f"return_all_differences must be bool, found {type(return_all_differences)}"
+        )
+    if not isinstance(id_field, bool):
+        raise ValueError(f"id_field must be str, found {type(id_field)}")
+    if not isinstance(recursive, bool):
+        raise ValueError(f"recursive must be bool, found {type(recursive)}")
+    if skip_n_first_rows and not isinstance(skip_n_first_rows, int):
+        raise ValueError(
+            f"skip_n_first_rows must be int, found {type(skip_n_first_rows)}"
+        )
+    if columns and not isinstance(columns, list):
+        raise ValueError(f"columns must be list, found {type(columns)}")
+    if sorting_keys and not isinstance(sorting_keys, dict):
+        raise ValueError(f"sorting_keys must be dict, found {type(sorting_keys)}")
+
+
+def _diff_columns(
+    left_df: pyspark.sql.DataFrame,
+    right_df: pyspark.sql.DataFrame,
+) -> list[Difference]:
+    differences = []
+    left_columns = set(left_df.columns)
+    right_columns = set(right_df.columns)
+    columns_only_left = left_columns - right_columns
+    columns_only_right = right_columns - left_columns
+
+    if columns_only_left or columns_only_right:
+        differences.append(
+            Difference(
+                row_id=0,
+                column_name="",
+                column_name_parent="",
+                left=columns_only_left,
+                right=columns_only_right,
+                reason=REASON_DIFF_COLUMNS,
+            )
+        )
+
+    return differences
 
 
 def _check_schema(
@@ -63,28 +105,26 @@ def _diff_row(
     right_row,
     column_name,
     row_id,
-    row_index,
     recursive,
     column_name_parent: str = "",
     sorting_keys: dict = None,
-) -> list:
+) -> list[Difference]:
     differences = []
     if isinstance(left_row, pyspark.sql.types.Row):
         left_row = left_row.asDict(True)
     if isinstance(right_row, pyspark.sql.types.Row):
         right_row = right_row.asDict(True)
     if left_row and right_row and left_row != right_row:
-        diff = {
-            "row_id": row_id,
-            "row_index": row_index + 1,
-            "column_name": column_name,
-            "column_name_parent": column_name_parent,
-            "left_row": left_row,
-            "right_row": right_row,
-        }
+        diff = Difference(
+            row_id=row_id,
+            column_name=column_name,
+            column_name_parent=column_name_parent,
+            left=left_row,
+            right=right_row,
+        )
         # If not same instance -> no need for more checks, we can't compare
         if not isinstance(left_row, type(right_row)):
-            diff["diff_reason"] = REASON_DIFF_TYPE
+            diff.reason = REASON_DIFF_TYPE
             differences.append(diff)
         # Iterate dict recursively if requested
         elif recursive and isinstance(left_row, dict):
@@ -95,7 +135,6 @@ def _diff_row(
                         right_row=right_row[key],
                         column_name=key,
                         row_id=row_id,
-                        row_index=row_index,
                         recursive=recursive,
                         column_name_parent=".".join(
                             filter(bool, [column_name_parent, column_name])
@@ -106,30 +145,28 @@ def _diff_row(
         # Iterate list recursively if requested
         elif recursive and isinstance(left_row, list):
             if len(left_row) != len(right_row):
-                diff["diff_reason"] = REASON_DIFF_LIST_LEN
+                diff.reason = REASON_DIFF_LIST_LEN
                 differences.append(diff)
             else:
                 if sorting_keys and column_name in sorting_keys:
                     left_row = sorted(left_row, key=sorting_keys[column_name])
                     right_row = sorted(right_row, key=sorting_keys[column_name])
                 for i in range(len(left_row)):
-                    column_name_parent = ".".join(
-                        filter(bool, [column_name_parent, column_name])
-                    )
                     differences.extend(
                         _diff_row(
                             left_row=left_row[i],
                             right_row=right_row[i],
                             column_name=f"[{i}]",
                             row_id=row_id,
-                            row_index=row_index,
                             recursive=recursive,
-                            column_name_parent=column_name_parent,
+                            column_name_parent=".".join(
+                                filter(bool, [column_name_parent, column_name])
+                            ),
                             sorting_keys=sorting_keys,
                         )
                     )
         else:
-            diff["diff_reason"] = REASON_DIFF_VALUE
+            diff.reason = REASON_DIFF_VALUE
             differences.append(diff)
 
     return differences
@@ -173,11 +210,10 @@ def _diff_df_content(
             left_row = left_df_list[row_index][column_name]
             right_row = right_df_list[row_index][column_name]
             diff = _diff_row(
-                left_row=left_row,
-                right_row=right_row,
+                left=left_row,
+                right=right_row,
                 column_name=column_name,
                 row_id=row_id,
-                row_index=row_index,
                 recursive=recursive,
                 sorting_keys=sorting_keys,
             )
@@ -192,66 +228,55 @@ def _diff_df_content(
 def diff(
     left_df: pyspark.sql.DataFrame,
     right_df: pyspark.sql.DataFrame,
-    check_dtype: bool = True,
-    check_column_names: bool = True,
-    check_columns_in_order: bool = False,
     order_by: list = None,
     return_all_differences: bool = False,
     id_field: str = None,
-    output_differences_file: str = None,
     recursive: bool = False,
     skip_n_first_rows: int = 0,
     columns: list = None,
     sorting_keys: dict = None,
-) -> None:
+) -> list:
     """
     Used to test if two dataframes are same or not
 
     Args:
         left_df (pyspark.sql.DataFrame): Left Dataframe
         right_df (pyspark.sql.DataFrame): Right Dataframe
-        check_dtype (bool, optional): Comapred both dataframe have same column and colum type or not. If using check_dtype then check_column_names is not required. Defaults to True.
-        check_column_names (bool, optional): Comapare both dataframes have same column or not. Defaults to False.
-        check_columns_in_order (bool, optional): Check columns in order. Defaults to False.
-        order_by (list, optional): List of column names if we want to sort dataframe before comparing. Defaults to None.
-        return_all_differences (bool, optional): If true this method will check all the differences instead of stopping when finding the first. Defaults to False.
-        id_field (str, optional): Name of the column that identifies the row, util when you need to sort the dataframes. Defaults to None.
-        output_differences_file (str, optional): If provided, the differences found will be persisted to a csv in this path. Defaults to None.
-        recursive (bool, optional): If provided, the check for differences will be done once the field does not contain another field inside, for example a string. Defaults to False.
-        skip_n_first_rows (int, optional): If provided, the first n rows will be ignored. Defaults to 0.
+        order_by (list, optional): List of column names if we want to sort dataframe before
+            comparing. Defaults to None.
+        return_all_differences (bool, optional): If true this method will check all the differences
+            instead of stopping when finding the first. Defaults to False.
+        id_field (str, optional): Name of the column that identifies the row, util when you need to
+            sort the dataframes. Defaults to None.
+        recursive (bool, optional): If provided, the check for differences will be done once the
+            field does not contain another field inside, for example a string. Defaults to False.
+        skip_n_first_rows (int, optional): If provided, the first n rows will be ignored.
+            Defaults to 0.
         columns (list, optional): Compare only these columns. Defaults to None.
-        sorting_keys (dict, optional): Sort specific columns if they are lists based on the key provided. Defaults to None.
+        sorting_keys (dict, optional): Sort specific columns if they are lists based on the key
+            provided. Defaults to None.
+
+    Returns:
+        A list of the differences
     """
 
-    logging.info(
-        f"""
-        Comparing pyspark differences. Params:\n
-            left_df: {left_df}
-            right_df: {right_df}
-            check_dtype: {check_dtype}
-            check_column_names: {check_column_names}
-            check_columns_in_order: {check_columns_in_order}
-            order_by: {order_by}
-            return_all_differences: {return_all_differences}
-            id_field: {id_field}
-            output_differences_file: {output_differences_file}
-            recursive: {recursive}
-            skip_n_first_rows: {skip_n_first_rows}
-            columns: {columns}
-            sorting_keys: {sorting_keys}
-    """
+    _validate_input(
+        left_df,
+        right_df,
+        order_by,
+        return_all_differences,
+        id_field,
+        recursive,
+        skip_n_first_rows,
+        columns,
+        sorting_keys,
     )
 
-    # Check both inputs are dataframes
-    _check_isinstance(left_df, right_df, pyspark.sql.DataFrame)
+    differences = _diff_columns(left_df, right_df)
+    if differences:
+        return differences  # if we have different columns there's no need to check more
 
-    # Check Column Names
-    if check_column_names:
-        _check_columns(check_columns_in_order, left_df, right_df)
-
-    # Check Column Data Types
-    if check_dtype:
-        _check_schema(check_columns_in_order, left_df, right_df)
+    _check_schema(left_df, right_df)
 
     # Check number of rows
     _check_row_count(left_df, right_df)
@@ -274,18 +299,4 @@ def diff(
         sorting_keys=sorting_keys,
     )
 
-    if differences:
-        if output_differences_file:
-            logger.warning(
-                f"DATA MISMATCH! {len(differences)} differences found. Saving them to {output_differences_file}..."
-            )
-            with open("output_differences_file", "w") as fd:
-                dict_writer = csv.DictWriter(fd, fieldnames=differences[0].keys())
-                dict_writer.writeheader()
-                dict_writer.writerows(differences)
-        else:
-            logger.warning(
-                f"DATA MISMATCH! {len(differences)} differences found: \n{pprint.pformat(differences)}"
-            )
-    else:
-        logging.info("Data is the same in both dataframes")
+    return differences

@@ -1,0 +1,1 @@
+fix parent_column_name bug that appends many times the same col per each list item
