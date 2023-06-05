@@ -42,7 +42,7 @@ def _validate_input(
         raise ValueError(
             f"return_all_differences must be bool, found {type(return_all_differences)}"
         )
-    if not isinstance(id_field, bool):
+    if id_field and not isinstance(id_field, str):
         raise ValueError(f"id_field must be str, found {type(id_field)}")
     if not isinstance(recursive, bool):
         raise ValueError(f"recursive must be bool, found {type(recursive)}")
@@ -235,8 +235,8 @@ def _diff_df_content(
             left_row = left_df_list[row_index][column_name]
             right_row = right_df_list[row_index][column_name]
             diff = _diff_row(
-                left=left_row,
-                right=right_row,
+                left_row=left_row,
+                right_row=right_row,
                 column_name=column_name,
                 row_id=row_id,
                 recursive=recursive,
