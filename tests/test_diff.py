@@ -45,13 +45,13 @@ def test_no_diff():
     assert not differences
 
 
-def test_return_only_first_diff():
+def test_only_first_diff__no_recursive():
     """Second difference is ignored as return_all_differences is False"""
     data1 = [({"k1": "VALUE 1"},), ({"k1": "VALUE 2"},)]
     data2 = [({"k1": "VALUE 1 DIFF"},), ({"k1": "VALUE 2 DIFF"},)]
     df1 = spark.createDataFrame(data=data1, schema=["colname"])
     df2 = spark.createDataFrame(data=data2, schema=["colname"])
-    differences = diff(df1, df2)
+    differences = diff(df1, df2, return_all_differences=False, recursive=False)
     assert differences == [
         Difference(
             row_id=None,
@@ -64,12 +64,12 @@ def test_return_only_first_diff():
     ]
 
 
-def test_return_all_diffs():
+def test_all_diffs__no_recursive():
     data1 = [({"k1": "VALUE 1"},), ({"k1": "VALUE 2"},)]
     data2 = [({"k1": "VALUE 1 DIFF"},), ({"k1": "VALUE 2 DIFF"},)]
     df1 = spark.createDataFrame(data=data1, schema=["colname"])
     df2 = spark.createDataFrame(data=data2, schema=["colname"])
-    differences = diff(df1, df2, return_all_differences=True)
+    differences = diff(df1, df2, recursive=False)
     assert differences == [
         Difference(
             row_id=None,
@@ -129,19 +129,82 @@ def test_order_by__diff__multiple_sorting_levels():
 
 
 def test_skip_n_first_rows():
-    pass
+    """Skip the first 2 rows with pyspark"""
+    data1 = [("header1a", "header1b"), ("header2a", "header2b"), ("a", "b")]
+    data2 = [
+        ("header1a_diff", "header1b_diff"),
+        ("header2a_diff", "header2b_diff"),
+        ("a", "b"),
+    ]
+    df1 = spark.createDataFrame(data=data1, schema=["col1", "col2"])
+    df2 = spark.createDataFrame(data=data2, schema=["col1", "col2"])
+    differences = diff(df1, df2, skip_n_first_rows=2)
+    assert not differences
 
 
 def test_order_by__and__skip_n_first_rows():
     """Sorting is not done with pyspark"""
-    pass
+    data1 = [
+        ("header1a", "header1b"),
+        ("header2a", "header2b"),
+        ("1", "1"),
+        ("1", "2"),
+    ]
+    data2 = [
+        ("header1a_diff", "header1b_diff"),
+        ("header2a_diff", "header2b_diff"),
+        ("1", "2"),
+        ("1", "1"),
+    ]
+    df1 = spark.createDataFrame(data=data1, schema=["col1", "col2"])
+    df2 = spark.createDataFrame(data=data2, schema=["col1", "col2"])
+    differences = diff(df1, df2, skip_n_first_rows=2, order_by=["col1", "col2"])
+    assert not differences
 
 
 def test_id_field():
-    pass
+    data1 = [("id1", "val1"), ("id2", "val2")]
+    data2 = [("id1", "val1"), ("id2", "val2diff")]
+    df1 = spark.createDataFrame(data=data1, schema=["id", "col1"])
+    df2 = spark.createDataFrame(data=data2, schema=["id", "col1"])
+    differences = diff(df1, df2, id_field="id")
+    assert differences == [
+        Difference(
+            row_id="id2",
+            column_name="col1",
+            column_name_parent="",
+            left="val2",
+            right="val2diff",
+            reason="diff_value",
+        )
+    ]
 
 
-def test_recursive():
+def test_recursive_dict():
+    data1 = [
+        ("id1", {"a": {"b": {"c": "value1"}}}),
+        ("id2", {"a": {"b": {"c": "value2"}}}),
+    ]
+    data2 = [
+        ("id1", {"a": {"b": {"c": "value1"}}}),
+        ("id2", {"a": {"b": {"c": "value2_diff"}}}),
+    ]
+    df1 = spark.createDataFrame(data=data1, schema=["id", "col1"])
+    df2 = spark.createDataFrame(data=data2, schema=["id", "col1"])
+    differences = diff(df1, df2, id_field="id")
+    assert differences == [
+        Difference(
+            row_id="id2",
+            column_name="c",
+            column_name_parent="col1.a.b",
+            left="value2",
+            right="value2_diff",
+            reason="diff_value",
+        )
+    ]
+
+
+def test_recursive_list():
     pass
 
 

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 
 class Difference(BaseModel):
-    row_id: Optional[int]
+    row_id: Optional[Any]
     column_name: Optional[str]
     column_name_parent: Optional[str]
     left: Any

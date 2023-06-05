@@ -21,12 +21,12 @@ REASON_DIFF_LIST_LEN = "diff_list_len"
 def _validate_input(
     left_df: pyspark.sql.DataFrame,
     right_df: pyspark.sql.DataFrame,
-    order_by: list = None,
-    return_all_differences: bool = False,
     id_field: str = None,
     recursive: bool = False,
-    skip_n_first_rows: int = 0,
     columns: list = None,
+    return_all_differences: bool = False,
+    skip_n_first_rows: int = 0,
+    order_by: list = None,
     sorting_keys: dict = None,
 ) -> None:
     if not isinstance(left_df, pyspark.sql.DataFrame) or not isinstance(
@@ -52,8 +52,16 @@ def _validate_input(
         )
     if columns and not isinstance(columns, list):
         raise ValueError(f"columns must be list, found {type(columns)}")
-    if sorting_keys and not isinstance(sorting_keys, dict):
-        raise ValueError(f"sorting_keys must be dict, found {type(sorting_keys)}")
+    if sorting_keys:
+        if not isinstance(sorting_keys, dict):
+            raise ValueError(f"sorting_keys must be dict, found {type(sorting_keys)}")
+        else:
+            for k, v in sorting_keys.items():
+                if not callable(v):
+                    raise ValueError(
+                        "sorting_keys must be dict and the values must be callables, found "
+                        f"{k}:{v}"
+                    )
 
 
 def _diff_columns(
@@ -253,12 +261,12 @@ def _diff_df_content(
 def diff(
     left_df: pyspark.sql.DataFrame,
     right_df: pyspark.sql.DataFrame,
-    order_by: list = None,
-    return_all_differences: bool = False,
     id_field: str = None,
-    recursive: bool = False,
-    skip_n_first_rows: int = 0,
+    recursive: bool = True,
     columns: list = None,
+    return_all_differences: bool = True,
+    skip_n_first_rows: int = 0,
+    order_by: list = None,
     sorting_keys: dict = None,
 ) -> list[Difference]:
     """
@@ -267,34 +275,35 @@ def diff(
     Args:
         left_df (pyspark.sql.DataFrame): Left Dataframe
         right_df (pyspark.sql.DataFrame): Right Dataframe
-        order_by (list, optional): List of column names if we want to sort dataframe before
-            comparing. Defaults to None.
-        return_all_differences (bool, optional): If true this method will check all the differences
-            instead of stopping when finding the first. Defaults to False.
-        id_field (str, optional): Name of the column that identifies the row, util when you need to
-            sort the dataframes. Defaults to None.
-        recursive (bool, optional): If provided, the check for differences will be done once the
-            field does not contain another field inside, for example a string. Defaults to False.
+        id_field (str, optional): Name of the column that identifies the same row in both
+            dataframes. Used to identify the rows with differences. Defaults to None.
+        recursive (bool, optional): Checks for differences will be done until the
+            field does not contain another field inside, for example a string. Defaults to True.
+        columns (list, optional): Compare only these columns. Defaults to None.
+        return_all_differences (bool, optional): Check all the differences in the whole file.
+            If False only the first difference will be returned. Defaults to True.
         skip_n_first_rows (int, optional): If provided, the first n rows will be ignored.
             Defaults to 0.
-        columns (list, optional): Compare only these columns. Defaults to None.
-        sorting_keys (dict, optional): Sort specific columns if they are lists based on the key
-            provided. Defaults to None.
+        order_by (list, optional): Order the dataframes by these column names before comparing.
+            Defaults to None.
+        sorting_keys (dict, optional): Sort the values of specific columns if they are lists based
+            on the key provided. The value must be a lambda used in the python `sorted` method.
+            Defaults to None.
 
     Returns:
-        A list of the differences, objects pyspark_diff.Difference
+        A list of the differences: objects of type pyspark_diff.Difference
     """
 
     _validate_input(
-        left_df,
-        right_df,
-        order_by,
-        return_all_differences,
-        id_field,
-        recursive,
-        skip_n_first_rows,
-        columns,
-        sorting_keys,
+        left_df=left_df,
+        right_df=right_df,
+        id_field=id_field,
+        recursive=recursive,
+        columns=columns,
+        return_all_differences=return_all_differences,
+        skip_n_first_rows=skip_n_first_rows,
+        order_by=order_by,
+        sorting_keys=sorting_keys,
     )
 
     differences = _diff_columns(left_df, right_df)
