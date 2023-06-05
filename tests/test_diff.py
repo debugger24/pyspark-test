@@ -1,6 +1,8 @@
 from pyspark_diff import diff
 from pyspark.sql import SparkSession
 
+from pyspark_diff import Difference
+
 spark = SparkSession.builder.appName("pyspark_diff_text").getOrCreate()
 
 
@@ -17,26 +19,113 @@ def test_diff_schema():
 
 
 def test_diff_row_count():
-    pass
+    data1 = [({"k1": "v1"},)]
+    data2 = [({"k1": "v1"},), ({"k1": "v2"},)]
+    df1 = spark.createDataFrame(data=data1, schema=["colname"])
+    df2 = spark.createDataFrame(data=data2, schema=["colname"])
+    differences = diff(df1, df2)
+    assert differences == [
+        Difference(
+            row_id=0,
+            column_name="",
+            column_name_parent="",
+            left=1,
+            right=2,
+            reason="diff_row_count",
+        )
+    ]
 
 
 def test_no_diff():
-    df1 = spark.createDataFrame(
-        data=[({"dict_key": "dict_value"},)], schema=["colname"]
-    )
-    assert not diff(df1, df1)
+    data1 = [({"k1": "VALUE 1"},), ({"k1": "VALUE 2"},)]
+    data2 = [({"k1": "VALUE 1"},), ({"k1": "VALUE 2"},)]
+    df1 = spark.createDataFrame(data=data1, schema=["colname"])
+    df2 = spark.createDataFrame(data=data2, schema=["colname"])
+    differences = diff(df1, df2)
+    assert not differences
 
 
 def test_return_only_first_diff():
-    pass
+    """Second difference is ignored as return_all_differences is False"""
+    data1 = [({"k1": "VALUE 1"},), ({"k1": "VALUE 2"},)]
+    data2 = [({"k1": "VALUE 1 DIFF"},), ({"k1": "VALUE 2 DIFF"},)]
+    df1 = spark.createDataFrame(data=data1, schema=["colname"])
+    df2 = spark.createDataFrame(data=data2, schema=["colname"])
+    differences = diff(df1, df2)
+    assert differences == [
+        Difference(
+            row_id=None,
+            column_name="colname",
+            column_name_parent="",
+            left={"k1": "VALUE 1"},
+            right={"k1": "VALUE 1 DIFF"},
+            reason="diff_value",
+        )
+    ]
 
 
 def test_return_all_diffs():
-    pass
+    data1 = [({"k1": "VALUE 1"},), ({"k1": "VALUE 2"},)]
+    data2 = [({"k1": "VALUE 1 DIFF"},), ({"k1": "VALUE 2 DIFF"},)]
+    df1 = spark.createDataFrame(data=data1, schema=["colname"])
+    df2 = spark.createDataFrame(data=data2, schema=["colname"])
+    differences = diff(df1, df2, return_all_differences=True)
+    assert differences == [
+        Difference(
+            row_id=None,
+            column_name="colname",
+            column_name_parent="",
+            left={"k1": "VALUE 1"},
+            right={"k1": "VALUE 1 DIFF"},
+            reason="diff_value",
+        ),
+        Difference(
+            row_id=None,
+            column_name="colname",
+            column_name_parent="",
+            left={"k1": "VALUE 2"},
+            right={"k1": "VALUE 2 DIFF"},
+            reason="diff_value",
+        ),
+    ]
 
 
-def test_order_by():
-    pass
+def test_order_by__no_diff():
+    """Sort rows based on col2_sort"""
+    data1 = [({"k1": "v1"}, "1"), ({"k1": "v2"}, "2")]
+    data2 = [({"k1": "v2"}, "2"), ({"k1": "v1"}, "1")]
+    df1 = spark.createDataFrame(data=data1, schema=["col1", "col2_sort"])
+    df2 = spark.createDataFrame(data=data2, schema=["col1", "col2_sort"])
+    differences = diff(df1, df2, order_by=["col2_sort"])
+    assert not differences
+
+
+def test_order_by__no_diff__multiple_sorting_levels():
+    """Sort rows based on 3 columns"""
+    data1 = [("1", "1", "1"), ("1", "1", "2"), ("1", "2", "3"), ("2", "3", "3")]
+    data2 = [("2", "3", "3"), ("1", "2", "3"), ("1", "1", "2"), ("1", "1", "1")]
+    df1 = spark.createDataFrame(data=data1, schema=["col1", "col2", "col3"])
+    df2 = spark.createDataFrame(data=data2, schema=["col1", "col2", "col3"])
+    differences = diff(df1, df2, order_by=["col1", "col2", "col3"])
+    assert not differences
+
+
+def test_order_by__diff__multiple_sorting_levels():
+    data1 = [("1", "1", "1"), ("1", "1", "2"), ("1", "2", "3"), ("2", "3", "3")]
+    data2 = [("2", "3", "DIFF"), ("1", "2", "3"), ("1", "1", "2"), ("1", "1", "1")]
+    df1 = spark.createDataFrame(data=data1, schema=["col1", "col2", "col3"])
+    df2 = spark.createDataFrame(data=data2, schema=["col1", "col2", "col3"])
+    differences = diff(df1, df2, order_by=["col1", "col2", "col3"])
+    assert differences == [
+        Difference(
+            row_id=None,
+            column_name="col3",
+            column_name_parent="",
+            left="3",
+            right="DIFF",
+            reason="diff_value",
+        )
+    ]
 
 
 def test_skip_n_first_rows():
