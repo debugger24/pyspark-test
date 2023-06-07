@@ -255,6 +255,9 @@ def _diff_df_content(
                 if not return_all_differences:
                     return differences
 
+        if row_index % 1_000 == 0:
+            logger.info(f"Done {row_index}/{len(left_df_list)}")
+
     return differences
 
 
