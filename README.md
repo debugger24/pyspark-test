@@ -55,5 +55,15 @@ And `differences` look like this:
 ]
 ```
 
+# Documentation
+
+For parameters documentation for now check directly the method as it's still changing because it's in dev mode and the readme is not always updated:
+
+https://github.com/oalfonso-o/pyspark_diff/blob/main/pyspark_diff/pyspark_diff.py#L264
+
+
+-----
+
+Note:
 
 Initially forked from https://github.com/debugger24/pyspark-test as this repo was intended to add minor features and open a pull request to the original repo but now the idea of this project is not testing pyspark and more extracting a diff from the pyspark. So the purpose changed from testing to debugging.
