@@ -261,6 +261,30 @@ def _diff_df_content(
     return differences
 
 
+def _diff_df_content_spark(
+    left_df: pyspark.sql.DataFrame,
+    right_df: pyspark.sql.DataFrame,
+    return_all_differences: bool = False,
+    id_field: str = None,
+    recursive: bool = False,
+    skip_n_first_rows: int = 0,
+    order_by: list = None,
+    columns: list = None,
+    sorting_keys: dict = None,
+) -> list[Difference]:
+    differences = []
+
+    if id_field and (
+        id_field not in left_df.columns or id_field not in left_df.columns
+    ):
+        raise ValueError(f"id_field {id_field} not present in the input dataframes")
+
+    for field in left_df.schema.fields:
+        pass
+
+    return differences
+
+
 def diff(
     left_df: pyspark.sql.DataFrame,
     right_df: pyspark.sql.DataFrame,
@@ -271,6 +295,7 @@ def diff(
     skip_n_first_rows: int = 0,
     order_by: list = None,
     sorting_keys: dict = None,
+    spark_process: bool = False,
 ) -> list[Difference]:
     """
     Used to test if two dataframes are same or not
@@ -328,16 +353,29 @@ def diff(
         left_df = left_df.orderBy(order_by)
         right_df = right_df.orderBy(order_by)
 
-    differences = _diff_df_content(
-        left_df=left_df,
-        right_df=right_df,
-        return_all_differences=return_all_differences,
-        id_field=id_field,
-        recursive=recursive,
-        skip_n_first_rows=skip_n_first_rows,
-        order_by=order_by,
-        columns=columns,
-        sorting_keys=sorting_keys,
-    )
+    if not spark_process:
+        differences = _diff_df_content(
+            left_df=left_df,
+            right_df=right_df,
+            return_all_differences=return_all_differences,
+            id_field=id_field,
+            recursive=recursive,
+            skip_n_first_rows=skip_n_first_rows,
+            order_by=order_by,
+            columns=columns,
+            sorting_keys=sorting_keys,
+        )
+    else:
+        differences = _diff_df_content_spark(
+            left_df=left_df,
+            right_df=right_df,
+            return_all_differences=return_all_differences,
+            id_field=id_field,
+            recursive=recursive,
+            skip_n_first_rows=skip_n_first_rows,
+            order_by=order_by,
+            columns=columns,
+            sorting_keys=sorting_keys,
+        )
 
     return differences
