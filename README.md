@@ -2,7 +2,7 @@
 
 Returns a list of differences between two PySpark dataframes. Example:
 
-`/tmp/data2.json`
+`/tmp/data1.json`
 ``` json
 {"id": 1, "values_list": ["a", "b"], "values_dict": {"a": "b"}}
 {"id": 2, "values_list": ["a", "b"], "values_dict": {"a": "b"}}

@@ -279,8 +279,21 @@ def _diff_df_content_spark(
     ):
         raise ValueError(f"id_field {id_field} not present in the input dataframes")
 
-    for field in left_df.schema.fields:
-        pass
+    # 1. "Flatten" the dataframes -> this means each column will have a single value, not nested types (not structs, not arrays)
+    from pyspark.sql import functions as F
+
+    for field in set(left_df.schema.fields) + set(right_df.schema.fields):
+        if field.typeName() == "StructField":
+            pass
+        elif field.typeName() == "ArrayField":
+            mx = df.select(F.max(F.size(field)).alias("max")).collect()[0].max
+            newcols = df.select(*[col(field)[i] for i in range(mx)])
+            left_df = (left_df + newcols).drop(field)
+
+    left_df.select(*[col(field)[i] for i in range(mx)])
+
+    # 2. Compare (with datacompy)
+    pass
 
     return differences
 
