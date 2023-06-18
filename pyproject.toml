@@ -1,11 +1,12 @@
 [project]
 name = "pyspark_diff"
-version = "1.0.0"
+version = "1.1.0"
 description = "Compare two PySpark dataframes"
 requires-python = ">=3.8"
 dependencies = [
     "pyspark>=3.4,<4",
     "pydantic>=1.10,<2",
+    "pyspark-extension>=2.8,<3",
     'importlib-metadata; python_version<"3.9"',
 ]
 readme = "README.md"

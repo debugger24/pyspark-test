@@ -1,8 +1,12 @@
 import logging
 
+from gresearch.spark.diff import DiffOptions, diff_with_options
 import pyspark
+from pyspark.sql.functions import max, size, col
+from pyspark.sql.types import StructType, ArrayType
 
 from pyspark_diff.models import Difference
+
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s: %(message)s", level="INFO"
@@ -272,14 +276,14 @@ class WithoutSpark:
 
 
 class WithSpark:
+    NESTED_FIELDS_SEP = "__"
+
     @classmethod
     def diff_df_content(
         cls,
         left_df: pyspark.sql.DataFrame,
         right_df: pyspark.sql.DataFrame,
-        return_all_differences: bool = False,
-        id_field: str = None,
-        recursive: bool = False,
+        id_field: str,
         skip_n_first_rows: int = 0,
         order_by: list = None,
         columns: list = None,
@@ -287,28 +291,46 @@ class WithSpark:
     ) -> list[Difference]:
         differences = []
 
-        if id_field and (
-            id_field not in left_df.columns or id_field not in left_df.columns
-        ):
+        if id_field not in left_df.columns or id_field not in left_df.columns:
             raise ValueError(f"id_field {id_field} not present in the input dataframes")
 
-        # 1. "Flatten" the dataframes -> this means each column will have a single value, not nested types (not structs, not arrays)
-        from pyspark.sql import functions as F
+        # 1. Flatten
+        flat_left_df = cls._flat_df(left_df, id_field=id_field)
+        flat_right_df = cls._flat_df(right_df, id_field=id_field)
 
-        for field in set(left_df.schema.fields) + set(right_df.schema.fields):
-            if field.typeName() == "StructField":
-                pass
-            elif field.typeName() == "ArrayField":
-                mx = df.select(F.max(F.size(field)).alias("max")).collect()[0].max
-                newcols = df.select(*[col(field)[i] for i in range(mx)])
-                left_df = (left_df + newcols).drop(field)
+        # 2. Compare
+        options = DiffOptions().with_change_column("changes")
+        diff_df = diff_with_options(
+            flat_left_df, flat_right_df, options, id_field
+        ).filter(col("diff") != DiffOptions.nochange_diff_value)
 
-        left_df.select(*[col(field)[i] for i in range(mx)])
+        return diff_df
 
-        # 2. Compare (with datacompy)
-        pass
-
-        return differences
+    @classmethod
+    def _flat_df(cls, df):
+        flattened = False
+        fields = df.schema.fields
+        for field in fields:
+            if field.dataType.typeName() == StructType.typeName():
+                new_cols_df = df.select("id", col(f"{field.name}.*"))
+                cols_and_aliases = [
+                    col(c).alias(f"{field.name}{cls.NESTED_FIELDS_SEP}{c}")
+                    for c in new_cols_df.columns
+                    if c != "id"
+                ]
+                new_cols_df = new_cols_df.select("id", *cols_and_aliases)
+                df = df.join(new_cols_df, on="id").drop(field.name)
+                flattened = True
+            elif field.dataType.typeName() == ArrayType.typeName():
+                mx_len = df.select(max(size(field.name)).alias("max")).collect()[0].max
+                new_cols_df = df.select(
+                    "id", *[col(field.name)[i] for i in range(mx_len)]
+                )
+                df = df.join(new_cols_df, on="id").drop(field.name)
+                flattened = True
+        if flattened:
+            df = cls._flat_df(df)
+        return df
 
 
 def diff(
@@ -395,9 +417,7 @@ def diff(
         differences = WithSpark.diff_df_content(
             left_df=left_df,
             right_df=right_df,
-            return_all_differences=return_all_differences,
             id_field=id_field,
-            recursive=recursive,
             skip_n_first_rows=skip_n_first_rows,
             order_by=order_by,
             columns=columns,
