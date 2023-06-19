@@ -1,9 +1,11 @@
 import logging
+import uuid
 
 from gresearch.spark.diff import DiffOptions, diff_with_options
 import pyspark
-from pyspark.sql.functions import max, size, col
+from pyspark.sql import functions as F
 from pyspark.sql.types import StructType, ArrayType
+from pyspark.sql import DataFrame
 
 from pyspark_diff.models import Difference
 
@@ -288,49 +290,104 @@ class WithSpark:
         order_by: list = None,
         columns: list = None,
         sorting_keys: dict = None,
-    ) -> list[Difference]:
-        differences = []
-
+    ) -> DataFrame:
         if id_field not in left_df.columns or id_field not in left_df.columns:
             raise ValueError(f"id_field {id_field} not present in the input dataframes")
 
+        # avoid ambiguous id cases with a tmp unique id col name
+        unique_id_field = uuid.uuid4().hex
+        left_df = left_df.withColumnRenamed(id_field, unique_id_field)
+        right_df = right_df.withColumnRenamed(id_field, unique_id_field)
+
         # 1. Flatten
-        flat_left_df = cls._flat_df(left_df, id_field=id_field)
-        flat_right_df = cls._flat_df(right_df, id_field=id_field)
+        flat_left_df, flat_right_df = cls._flat_dfs(
+            left_df, right_df, id_field=unique_id_field
+        )
+
+        flat_left_df = flat_left_df.withColumnRenamed(unique_id_field, id_field)
+        flat_right_df = flat_right_df.withColumnRenamed(unique_id_field, id_field)
 
         # 2. Compare
         options = DiffOptions().with_change_column("changes")
         diff_df = diff_with_options(
             flat_left_df, flat_right_df, options, id_field
-        ).filter(col("diff") != DiffOptions.nochange_diff_value)
+        ).filter(F.col("diff") != DiffOptions.nochange_diff_value)
 
         return diff_df
 
     @classmethod
-    def _flat_df(cls, df):
+    def _flat_dfs(cls, left_df, right_df, id_field):
         flattened = False
-        fields = df.schema.fields
+        fields = set(left_df.schema.fields + right_df.schema.fields)
         for field in fields:
+            print(field.name)
             if field.dataType.typeName() == StructType.typeName():
-                new_cols_df = df.select("id", col(f"{field.name}.*"))
-                cols_and_aliases = [
-                    col(c).alias(f"{field.name}{cls.NESTED_FIELDS_SEP}{c}")
-                    for c in new_cols_df.columns
-                    if c != "id"
-                ]
-                new_cols_df = new_cols_df.select("id", *cols_and_aliases)
-                df = df.join(new_cols_df, on="id").drop(field.name)
+                print("    " + StructType.typeName())
+                left_cols = cls._field_columns(left_df, field)
+                right_cols = cls._field_columns(right_df, field)
+
+                left_df = left_df.select("*", *left_cols.values()).drop(field.name)
+                right_df = right_df.select("*", *right_cols.values()).drop(field.name)
+
+                # add missing cols to keep schema symetry
+                left_colnames = set(left_cols.keys())
+                right_colnames = set(right_cols.keys())
+                if left_colnames != right_colnames:
+                    if only_left_columns := left_colnames - right_colnames:
+                        right_df = right_df.withColumns(
+                            {
+                                # c: F.lit(None).cast(left_df.schema[c])
+                                c: F.lit(None)
+                                for c in only_left_columns
+                            }
+                        )
+                    if only_right_columns := right_colnames - left_colnames:
+                        left_df = left_df.withColumns(
+                            {
+                                # c: F.lit(None).cast(right_df.schema[c])
+                                c: F.lit(None)
+                                for c in only_right_columns
+                            }
+                        )
+
                 flattened = True
+
             elif field.dataType.typeName() == ArrayType.typeName():
-                mx_len = df.select(max(size(field.name)).alias("max")).collect()[0].max
-                new_cols_df = df.select(
-                    "id", *[col(field.name)[i] for i in range(mx_len)]
+                print("    " + ArrayType.typeName())
+                mx_left_len = (
+                    left_df.select(F.max(F.size(field.name)).alias("max"))
+                    .collect()[0]
+                    .max
                 )
-                df = df.join(new_cols_df, on="id").drop(field.name)
+                mx_right_len = (
+                    right_df.select(F.max(F.size(field.name)).alias("max"))
+                    .collect()[0]
+                    .max
+                )
+                max_len = max(mx_left_len, mx_right_len)
+                left_df = left_df.select(
+                    "*",
+                    *[F.col(field.name)[i] for i in range(max_len)],
+                ).drop(field.name)
+                right_df = right_df.select(
+                    "*",
+                    *[F.col(field.name)[i] for i in range(max_len)],
+                ).drop(field.name)
                 flattened = True
         if flattened:
-            df = cls._flat_df(df)
-        return df
+            left_df, right_df = cls._flat_dfs(left_df, right_df, id_field=id_field)
+        return left_df, right_df
+
+    @classmethod
+    def _field_columns(cls, df, field):
+        """Returns a dict where each key is the column name and the value is the pyspark column"""
+        cols = {}
+        if field.name in df.columns:
+            for column in df.select(F.col(f"{field.name}.*")).columns:
+                cols[column] = F.col(f"{field.name}.{column}").alias(
+                    f"{field.name}{cls.NESTED_FIELDS_SEP}{column}"
+                )
+        return cols
 
 
 def diff(
