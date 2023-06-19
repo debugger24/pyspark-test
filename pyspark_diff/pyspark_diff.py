@@ -286,7 +286,6 @@ class WithSpark:
         left_df: pyspark.sql.DataFrame,
         right_df: pyspark.sql.DataFrame,
         id_field: str,
-        skip_n_first_rows: int = 0,
         order_by: list = None,
         columns: list = None,
         sorting_keys: dict = None,
@@ -300,6 +299,7 @@ class WithSpark:
         right_df = right_df.withColumnRenamed(id_field, unique_id_field)
 
         # 1. Flatten
+        logger.info("Flattening dataframes...")
         flat_left_df, flat_right_df = cls._flat_dfs(
             left_df, right_df, id_field=unique_id_field
         )
@@ -308,6 +308,7 @@ class WithSpark:
         flat_right_df = flat_right_df.withColumnRenamed(unique_id_field, id_field)
 
         # 2. Compare
+        logger.info("Comparing dataframes...")
         options = DiffOptions().with_change_column("changes")
         diff_df = diff_with_options(
             flat_left_df, flat_right_df, options, id_field
@@ -320,16 +321,14 @@ class WithSpark:
         flattened = False
         fields = set(left_df.schema.fields + right_df.schema.fields)
         for field in fields:
-            print(field.name)
             if field.dataType.typeName() == StructType.typeName():
-                print("    " + StructType.typeName())
                 left_cols = cls._field_columns(left_df, field)
                 right_cols = cls._field_columns(right_df, field)
 
                 left_df = left_df.select("*", *left_cols.values()).drop(field.name)
                 right_df = right_df.select("*", *right_cols.values()).drop(field.name)
 
-                # add missing cols to keep schema symetry
+                # add missing cols to keep schema symmetry
                 left_colnames = set(left_cols.keys())
                 right_colnames = set(right_cols.keys())
                 if left_colnames != right_colnames:
@@ -353,7 +352,6 @@ class WithSpark:
                 flattened = True
 
             elif field.dataType.typeName() == ArrayType.typeName():
-                print("    " + ArrayType.typeName())
                 mx_left_len = (
                     left_df.select(F.max(F.size(field.name)).alias("max"))
                     .collect()[0]
@@ -390,7 +388,7 @@ class WithSpark:
         return cols
 
 
-def diff(
+def diff_objs(
     left_df: pyspark.sql.DataFrame,
     right_df: pyspark.sql.DataFrame,
     id_field: str = None,
@@ -400,7 +398,6 @@ def diff(
     skip_n_first_rows: int = 0,
     order_by: list = None,
     sorting_keys: dict = None,
-    spark_process: bool = False,
 ) -> list[Difference]:
     """
     Used to test if two dataframes are same or not
@@ -458,27 +455,55 @@ def diff(
         left_df = left_df.orderBy(order_by)
         right_df = right_df.orderBy(order_by)
 
-    if not spark_process:
-        differences = WithoutSpark.diff_df_content(
-            left_df=left_df,
-            right_df=right_df,
-            return_all_differences=return_all_differences,
-            id_field=id_field,
-            recursive=recursive,
-            skip_n_first_rows=skip_n_first_rows,
-            order_by=order_by,
-            columns=columns,
-            sorting_keys=sorting_keys,
-        )
-    else:
-        differences = WithSpark.diff_df_content(
-            left_df=left_df,
-            right_df=right_df,
-            id_field=id_field,
-            skip_n_first_rows=skip_n_first_rows,
-            order_by=order_by,
-            columns=columns,
-            sorting_keys=sorting_keys,
-        )
+    differences = WithoutSpark.diff_df_content(
+        left_df=left_df,
+        right_df=right_df,
+        return_all_differences=return_all_differences,
+        id_field=id_field,
+        recursive=recursive,
+        skip_n_first_rows=skip_n_first_rows,
+        order_by=order_by,
+        columns=columns,
+        sorting_keys=sorting_keys,
+    )
 
     return differences
+
+
+def diff_df(
+    left_df: pyspark.sql.DataFrame,
+    right_df: pyspark.sql.DataFrame,
+    id_field: str = None,
+    columns: list = None,
+    order_by: list = None,
+    sorting_keys: dict = None,
+) -> DataFrame:
+    """
+    Used to test if two dataframes are same or not, returns a Dataframe with the differences
+
+    Args:
+        left_df (pyspark.sql.DataFrame): Left Dataframe
+        right_df (pyspark.sql.DataFrame): Right Dataframe
+        id_field (str, optional): Name of the column that identifies the same row in both
+            dataframes. Used to identify the rows with differences. Defaults to None.
+        columns (list, optional): Compare only these columns. Defaults to None.
+        order_by (list, optional): Order the dataframes by these column names before comparing.
+            Defaults to None.
+        sorting_keys (dict, optional): Sort the values of specific columns if they are lists based
+            on the key provided.
+            Defaults to None.
+
+    Returns:
+        a pyspark.sql.DataFrame
+    """
+
+    diff_df = WithSpark.diff_df_content(
+        left_df=left_df,
+        right_df=right_df,
+        id_field=id_field,
+        order_by=order_by,
+        columns=columns,
+        sorting_keys=sorting_keys,
+    )
+
+    return diff_df

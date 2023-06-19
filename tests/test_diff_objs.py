@@ -1,4 +1,4 @@
-from pyspark_diff import diff
+from pyspark_diff import diff_objs
 from pyspark.sql import SparkSession
 
 from pyspark_diff import Difference
@@ -23,7 +23,7 @@ def test_diff_row_count():
     data2 = [({"k1": "v1"},), ({"k1": "v2"},)]
     df1 = spark.createDataFrame(data=data1, schema=["colname"])
     df2 = spark.createDataFrame(data=data2, schema=["colname"])
-    differences = diff(df1, df2)
+    differences = diff_objs(df1, df2)
     assert differences == [
         Difference(
             row_id=0,
@@ -41,7 +41,7 @@ def test_no_diff():
     data2 = [({"k1": "VALUE 1"},), ({"k1": "VALUE 2"},)]
     df1 = spark.createDataFrame(data=data1, schema=["colname"])
     df2 = spark.createDataFrame(data=data2, schema=["colname"])
-    differences = diff(df1, df2)
+    differences = diff_objs(df1, df2)
     assert not differences
 
 
@@ -51,7 +51,7 @@ def test_only_first_diff__no_recursive():
     data2 = [({"k1": "VALUE 1 DIFF"},), ({"k1": "VALUE 2 DIFF"},)]
     df1 = spark.createDataFrame(data=data1, schema=["colname"])
     df2 = spark.createDataFrame(data=data2, schema=["colname"])
-    differences = diff(df1, df2, return_all_differences=False, recursive=False)
+    differences = diff_objs(df1, df2, return_all_differences=False, recursive=False)
     assert differences == [
         Difference(
             row_id=None,
@@ -69,7 +69,7 @@ def test_all_diffs__no_recursive():
     data2 = [({"k1": "VALUE 1 DIFF"},), ({"k1": "VALUE 2 DIFF"},)]
     df1 = spark.createDataFrame(data=data1, schema=["colname"])
     df2 = spark.createDataFrame(data=data2, schema=["colname"])
-    differences = diff(df1, df2, recursive=False)
+    differences = diff_objs(df1, df2, recursive=False)
     assert differences == [
         Difference(
             row_id=None,
@@ -96,7 +96,7 @@ def test_order_by__no_diff():
     data2 = [({"k1": "v2"}, "2"), ({"k1": "v1"}, "1")]
     df1 = spark.createDataFrame(data=data1, schema=["col1", "col2_sort"])
     df2 = spark.createDataFrame(data=data2, schema=["col1", "col2_sort"])
-    differences = diff(df1, df2, order_by=["col2_sort"])
+    differences = diff_objs(df1, df2, order_by=["col2_sort"])
     assert not differences
 
 
@@ -106,7 +106,7 @@ def test_order_by__no_diff__multiple_sorting_levels():
     data2 = [("2", "3", "3"), ("1", "2", "3"), ("1", "1", "2"), ("1", "1", "1")]
     df1 = spark.createDataFrame(data=data1, schema=["col1", "col2", "col3"])
     df2 = spark.createDataFrame(data=data2, schema=["col1", "col2", "col3"])
-    differences = diff(df1, df2, order_by=["col1", "col2", "col3"])
+    differences = diff_objs(df1, df2, order_by=["col1", "col2", "col3"])
     assert not differences
 
 
@@ -115,7 +115,7 @@ def test_order_by__diff__multiple_sorting_levels():
     data2 = [("2", "3", "DIFF"), ("1", "2", "3"), ("1", "1", "2"), ("1", "1", "1")]
     df1 = spark.createDataFrame(data=data1, schema=["col1", "col2", "col3"])
     df2 = spark.createDataFrame(data=data2, schema=["col1", "col2", "col3"])
-    differences = diff(df1, df2, order_by=["col1", "col2", "col3"])
+    differences = diff_objs(df1, df2, order_by=["col1", "col2", "col3"])
     assert differences == [
         Difference(
             row_id=None,
@@ -138,7 +138,7 @@ def test_skip_n_first_rows():
     ]
     df1 = spark.createDataFrame(data=data1, schema=["col1", "col2"])
     df2 = spark.createDataFrame(data=data2, schema=["col1", "col2"])
-    differences = diff(df1, df2, skip_n_first_rows=2)
+    differences = diff_objs(df1, df2, skip_n_first_rows=2)
     assert not differences
 
 
@@ -158,7 +158,7 @@ def test_order_by__and__skip_n_first_rows():
     ]
     df1 = spark.createDataFrame(data=data1, schema=["col1", "col2"])
     df2 = spark.createDataFrame(data=data2, schema=["col1", "col2"])
-    differences = diff(df1, df2, skip_n_first_rows=2, order_by=["col1", "col2"])
+    differences = diff_objs(df1, df2, skip_n_first_rows=2, order_by=["col1", "col2"])
     assert not differences
 
 
@@ -167,7 +167,7 @@ def test_id_field():
     data2 = [("id1", "val1"), ("id2", "val2diff")]
     df1 = spark.createDataFrame(data=data1, schema=["id", "col1"])
     df2 = spark.createDataFrame(data=data2, schema=["id", "col1"])
-    differences = diff(df1, df2, id_field="id")
+    differences = diff_objs(df1, df2, id_field="id")
     assert differences == [
         Difference(
             row_id="id2",
@@ -191,7 +191,7 @@ def test_recursive_dict():
     ]
     df1 = spark.createDataFrame(data=data1, schema=["id", "col1"])
     df2 = spark.createDataFrame(data=data2, schema=["id", "col1"])
-    differences = diff(df1, df2, id_field="id")
+    differences = diff_objs(df1, df2, id_field="id")
     assert differences == [
         Difference(
             row_id="id2",
@@ -235,7 +235,7 @@ def test_recursive_list():
     ]
     df1 = spark.createDataFrame(data=data1, schema=["id", "col1"])
     df2 = spark.createDataFrame(data=data2, schema=["id", "col1"])
-    differences = diff(df1, df2, id_field="id")
+    differences = diff_objs(df1, df2, id_field="id")
     assert differences == [
         Difference(
             row_id="id2",
@@ -271,7 +271,7 @@ def test_specific_columns():
     ]
     df1 = spark.createDataFrame(data=data1, schema=["id", "col1", "col2", "col3"])
     df2 = spark.createDataFrame(data=data2, schema=["id", "col1", "col2", "col3"])
-    differences = diff(df1, df2, id_field="id", columns=["col1"])
+    differences = diff_objs(df1, df2, id_field="id", columns=["col1"])
     assert differences == [
         Difference(
             row_id="id4",
@@ -299,7 +299,7 @@ def test_diff_all_columns():
     ]
     df1 = spark.createDataFrame(data=data1, schema=["id", "col1", "col2", "col3"])
     df2 = spark.createDataFrame(data=data2, schema=["id", "col1", "col2", "col3"])
-    differences = diff(df1, df2, id_field="id")
+    differences = diff_objs(df1, df2, id_field="id")
     assert differences == [
         Difference(
             row_id="id1",
@@ -353,7 +353,7 @@ def test_sorting_keys():
     ]
     df1 = spark.createDataFrame(data=data1, schema=["id", "col1"])
     df2 = spark.createDataFrame(data=data2, schema=["id", "col1"])
-    differences = diff(df1, df2, id_field="id")
+    differences = diff_objs(df1, df2, id_field="id")
     assert differences == [
         Difference(
             row_id="id1",
@@ -372,7 +372,7 @@ def test_sorting_keys():
             reason="diff_value",
         ),
     ]
-    differences = diff(
+    differences = diff_objs(
         df1, df2, id_field="id", sorting_keys={"col1": lambda x: (x["a"], x["b"])}
     )
     assert not differences

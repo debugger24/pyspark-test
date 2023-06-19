@@ -1,7 +1,7 @@
 import csv
 
 from pyspark.sql import SparkSession
-from pyspark_diff import diff
+from pyspark_diff import diff_objs
 
 
 spark = (
@@ -17,7 +17,7 @@ df2 = spark.read.json(
     "/home/oalfonso/Documents/digital/cpg/icf__deezer_it__NEW__id_369682.json"
 )
 
-differences = diff(
+differences = diff_objs(
     left_df=df1,
     right_df=df2,
     id_field="resource_id",
