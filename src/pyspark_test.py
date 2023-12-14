@@ -2,15 +2,28 @@ from typing import Any
 
 import pyspark
 
+try:
+    from pyspark.sql.connect.dataframe import DataFrame as CDF
+    has_connect_deps = True
+except ImportError:
+    has_connect_deps = False
 
-def _check_isinstance(left: Any, right: Any, cls):
-    assert isinstance(
-        left, cls
-    ), f"Left expected type {cls}, found {type(left)} instead"
-    assert isinstance(
-        right, cls
-    ), f"Right expected type {cls}, found {type(right)} instead"
 
+def _check_isinstance_df(left: Any, right: Any):
+    types_to_test = [pyspark.sql.DataFrame]
+    if has_connect_deps:
+        types_to_test.append(CDF)
+
+    left_good = any(map(lambda x: isinstance(left, x), types_to_test))
+    right_good = any(map(lambda x: isinstance(right, x), types_to_test))
+    assert left_good, \
+        f"Left expected type {pyspark.sql.DataFrame} or {CDF}, found {type(left)} instead"
+    assert right_good, \
+        f"Right expected type {pyspark.sql.DataFrame} or {CDF}, found {type(right)} instead"
+
+    # Check that both sides are of the same DataFrame type.
+    assert type(left) == type(right), \
+        f"Left and right DataFrames are not of the same type: {type(left)} != {type(right)}"
 
 def _check_columns(
     check_columns_in_order: bool,
@@ -88,7 +101,7 @@ def assert_pyspark_df_equal(
     """
 
     # Check if
-    _check_isinstance(left_df, right_df, pyspark.sql.DataFrame)
+    _check_isinstance_df(left_df, right_df)
 
     # Check Column Names
     if check_column_names:

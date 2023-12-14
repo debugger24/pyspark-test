@@ -19,5 +19,5 @@ setup(
     license="Apache Software License (Apache 2.0)",
     py_modules=["pyspark_test"],
     package_dir={"": "src"},
-    install_requires=["pyspark>=2.1.2"],
+    install_requires=["pyspark>=3.4.0"],
 )
