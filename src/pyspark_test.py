@@ -2,14 +2,36 @@ from typing import Any
 
 import pyspark
 
+try:
+    from pyspark.sql.connect.dataframe import DataFrame as CDF
 
-def _check_isinstance(left: Any, right: Any, cls):
-    assert isinstance(
-        left, cls
-    ), f"Left expected type {cls}, found {type(left)} instead"
-    assert isinstance(
-        right, cls
-    ), f"Right expected type {cls}, found {type(right)} instead"
+    has_connect_deps = True
+except ImportError:
+    has_connect_deps = False
+
+
+def _check_isinstance_df(left: Any, right: Any):
+    types_to_test = [pyspark.sql.DataFrame]
+    msg_string = ""
+    # If Spark Connect dependencies are not available, the input is not going to be a Spark Connect
+    # DataFrame so we can safely skip the validation.
+    if has_connect_deps:
+        types_to_test.append(CDF)
+        msg_string = " or {CDF}"
+
+    left_good = any(map(lambda x: isinstance(left, x), types_to_test))
+    right_good = any(map(lambda x: isinstance(right, x), types_to_test))
+    assert (
+        left_good
+    ), f"Left expected type {pyspark.sql.DataFrame}{msg_string}, found {type(left)} instead"
+    assert (
+        right_good
+    ), f"Right expected type {pyspark.sql.DataFrame}{msg_string}, found {type(right)} instead"
+
+    # Check that both sides are of the same DataFrame type.
+    assert type(left) == type(
+        right
+    ), f"Left and right DataFrames are not of the same type: {type(left)} != {type(right)}"
 
 
 def _check_columns(
@@ -39,7 +61,8 @@ def _check_schema(
 
 
 def _check_df_content(
-    left_df: pyspark.sql.DataFrame, right_df: pyspark.sql.DataFrame,
+    left_df: pyspark.sql.DataFrame,
+    right_df: pyspark.sql.DataFrame,
 ):
     left_df_list = left_df.collect()
     right_df_list = right_df.collect()
@@ -88,7 +111,7 @@ def assert_pyspark_df_equal(
     """
 
     # Check if
-    _check_isinstance(left_df, right_df, pyspark.sql.DataFrame)
+    _check_isinstance_df(left_df, right_df)
 
     # Check Column Names
     if check_column_names:

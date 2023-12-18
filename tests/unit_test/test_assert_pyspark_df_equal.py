@@ -12,6 +12,7 @@ from pyspark.sql.types import (
 )
 
 from src.pyspark_test import assert_pyspark_df_equal
+from src.pyspark_test import _check_isinstance_df
 
 
 class TestAssertPysparkDfEqual:
@@ -68,7 +69,7 @@ class TestAssertPysparkDfEqual:
         right_df = "Demo"
         with pytest.raises(
             AssertionError,
-            match="Right expected type <class 'pyspark.sql.dataframe.DataFrame'>, found <class 'str'> instead",
+            match="Right expected type <class 'pyspark.sql.dataframe.DataFrame'> or .*?, found <class 'str'> instead",
         ):
             assert_pyspark_df_equal(left_df, right_df)
 
@@ -324,3 +325,18 @@ class TestAssertPysparkDfEqual:
             match="Number of rows are not same.\n  \n  Actual Rows: 2\n  Expected Rows: 3",
         ):
             assert_pyspark_df_equal(left_df, right_df)
+
+    def test_instance_checks_for_spark_connect(
+            self, spark_session: pyspark.sql.SparkSession
+    ):
+        from pyspark.sql.connect.dataframe import DataFrame as CDF
+        left_df = spark_session.range(1)
+        right_df = spark_session.range(1)
+        _check_isinstance_df(left_df, right_df)
+
+        left_df = CDF.withPlan(None, None)
+        right_df = CDF.withPlan(None, None)
+        _check_isinstance_df(left_df, right_df)
+
+        with pytest.raises(AssertionError):
+            _check_isinstance_df(spark_session.range(1), right_df)
