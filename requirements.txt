@@ -12,32 +12,63 @@ click==7.1.2
     # via black
 exceptiongroup==1.2.0
     # via pytest
+googleapis-common-protos==1.62.0
+    # via
+    #   grpcio-status
+    #   pyspark
+grpcio==1.60.0
+    # via
+    #   grpcio-status
+    #   pyspark
+grpcio-status==1.60.0
+    # via pyspark
 iniconfig==1.0.1
     # via pytest
 mypy-extensions==0.4.3
     # via black
+numpy==1.26.2
+    # via
+    #   pandas
+    #   pyarrow
+    #   pyspark
 packaging==20.4
     # via pytest
+pandas==2.1.4
+    # via pyspark
 pathspec==0.8.0
     # via black
 pluggy==0.13.1
     # via pytest
+protobuf==4.25.1
+    # via
+    #   googleapis-common-protos
+    #   grpcio-status
 py4j==0.10.9.7
+    # via pyspark
+pyarrow==14.0.1
     # via pyspark
 pyparsing==2.4.7
     # via packaging
-pyspark==3.4.0
-    # via -r requirements.in
+pyspark[connect]==3.4.0
+    # via
+    #   -r requirements.in
+    #   pyspark
 pytest==7.3.1
     # via
     #   -r requirements.in
     #   pytest-testdox
 pytest-testdox==2.0.1
     # via -r requirements.in
+python-dateutil==2.8.2
+    # via pandas
+pytz==2023.3.post1
+    # via pandas
 regex==2020.10.28
     # via black
 six==1.15.0
-    # via packaging
+    # via
+    #   packaging
+    #   python-dateutil
 toml==0.10.1
     # via black
 tomli==2.0.1
@@ -46,3 +77,5 @@ typed-ast==1.4.1
     # via black
 typing-extensions==3.7.4.3
     # via black
+tzdata==2023.3
+    # via pandas

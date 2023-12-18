@@ -1,4 +1,4 @@
 black==20.8b1
-pyspark==3.4.0
+pyspark[connect]==3.4.0
 pytest-testdox==2.0.1
 pytest==7.3.1
